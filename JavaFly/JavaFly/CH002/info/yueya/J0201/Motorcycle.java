@@ -1,11 +1,3 @@
-> Java学习手册
-
-
-![](/Doc/Image/java.PNG)
-
-
-```java
-
 package info.yueya.J0201;
 
 public class Motorcycle {
@@ -46,7 +38,9 @@ public class Motorcycle {
 		motorcycle.make = "Jack";
 		//motorcycle.engineState=true;
 		motorcycle.startEngine();
-		motorcycle.showAtts();				
+		motorcycle.showAtts();
+		
+		
 	}
+
 }
-```
