@@ -670,6 +670,32 @@
       "fontFamily": 1,
       "textAlign": "left",
       "baseline": 23
+    },
+    {
+      "id": "bJDskXEnBKB2wqcS7uBNP",
+      "type": "text",
+      "x": 1286,
+      "y": 275,
+      "width": 191.99999999999994,
+      "height": 26.947368421052623,
+      "angle": 0,
+      "strokeColor": "#000000",
+      "backgroundColor": "#82c91e",
+      "fillStyle": "hachure",
+      "strokeWidth": 1,
+      "strokeStyle": "dotted",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 968400123,
+      "version": 107,
+      "versionNonce": 1342942523,
+      "isDeleted": false,
+      "text": "OOP,Interfaces,Classes",
+      "fontSize": 16.8421052631579,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "baseline": 19
     }
   ],
   "appState": {
