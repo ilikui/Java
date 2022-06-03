@@ -3,6 +3,8 @@
 	<classpathentry kind="src" path="CH001"/>
 	<classpathentry kind="src" path="CH002"/>
 	<classpathentry kind="src" path="CH003"/>
+	<classpathentry kind="src" path="CH004"/>
+	<classpathentry kind="src" path="CH005"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17">
 		<attributes>
 			<attribute name="module" value="true"/>

@@ -4,6 +4,7 @@
 - [1.Learn the Fundamentals](#1learn-the-fundamentals)
   - [1.1 Basic Syntax](#11-basic-syntax)
   - [1.2 DataTypes,Variables](#12-datatypesvariables)
+  - [1.3 Conditions](#13-conditions)
 - [2.Getting Deeper](#2getting-deeper)
 - [3. Build Tools](#3-build-tools)
 - [5.Web Frameworks](#5web-frameworks)
@@ -25,6 +26,14 @@
 ### 1.1 Basic Syntax
 
 ### 1.2 DataTypes,Variables
+
+
+
+### 1.3 Conditions
+
+
+
+
 
 
 
