@@ -39,6 +39,21 @@ class BookServiceTest {
         assertNotNull(history.get(0).borrowedAt());
         assertNotNull(history.get(0).returnedAt());
         assertThrows(IllegalArgumentException.class, () -> service.findLoanHistory(0));
+
+        var audit = service.findStockAudit(bookId);
+        assertEquals(3, audit.size(), "register, borrow and return should each produce an audit entry");
+        assertEquals("REGISTER", audit.get(0).operation());
+        assertEquals(0, audit.get(0).beforeCount());
+        assertEquals(1, audit.get(0).afterCount());
+        assertEquals("BORROW", audit.get(1).operation());
+        assertEquals(1, audit.get(1).beforeCount());
+        assertEquals(0, audit.get(1).afterCount());
+        assertEquals("RETURN", audit.get(2).operation());
+        assertEquals(0, audit.get(2).beforeCount());
+        assertEquals(1, audit.get(2).afterCount());
+        assertEquals("Alice", audit.get(1).operator());
+        assertNotNull(audit.get(2).occurredAt());
+        assertThrows(IllegalArgumentException.class, () -> service.findStockAudit(-1));
     }
 
     @Test void invalidRegistrationDoesNotCreateBook() throws SQLException {
