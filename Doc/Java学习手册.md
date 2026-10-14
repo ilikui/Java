@@ -21,6 +21,7 @@
 - [15｜线程池设计与任务治理](../Topics/15-线程池设计与任务治理.md)
 - [08｜IO、NIO 与网络](../Topics/08-IO-NIO与网络.md)
 - [09｜SQL 与 JDBC](../Topics/09-SQL与JDBC.md)
+- [16｜JDBC 事务与 DAO 分层实战](../Topics/16-JDBC事务与DAO分层实战.md)
 - [10｜Maven 与测试](../Topics/10-Maven与测试.md)
 
 ### 应用开发与面试
@@ -78,6 +79,10 @@ mindmap
 6. **练习**：至少一道基础题、一道人为构造的边界题。
 7. **面试自测**：先回答，再对照资料查漏补缺。
 8. **延伸阅读**：优先链接官方文档。
+
+### 可运行项目
+
+- [JDBC 图书管理练习项目](../Practice/jdbc-library/README.md)
 
 ## 官方资料
 
