@@ -87,19 +87,30 @@ public final class BookService {
 
     private <T> T inTransaction(SqlWork<T> work) throws SQLException {
         boolean originalAutoCommit = connection.getAutoCommit();
+        Throwable primaryFailure = null;
         try {
             connection.setAutoCommit(false);
             T result = work.run();
             connection.commit();
             return result;
-        } catch (SQLException | RuntimeException ex) {
-            try { connection.rollback(); } catch (SQLException rollbackError) { ex.addSuppressed(rollbackError); }
+        } catch (SQLException | RuntimeException | Error ex) {
+            primaryFailure = ex;
+            try {
+                connection.rollback();
+            } catch (SQLException rollbackError) {
+                ex.addSuppressed(rollbackError);
+            }
             throw ex;
         } finally {
-            try { connection.setAutoCommit(originalAutoCommit); }
-            catch (SQLException restoreError) {
-                // Surface restoration failure rather than silently reusing a connection in unknown state.
-                throw restoreError;
+            try {
+                connection.setAutoCommit(originalAutoCommit);
+            } catch (SQLException restoreError) {
+                if (primaryFailure != null) {
+                    // Keep the business/SQL failure as primary; retain cleanup failure for diagnosis.
+                    primaryFailure.addSuppressed(restoreError);
+                } else {
+                    throw restoreError;
+                }
             }
         }
     }
