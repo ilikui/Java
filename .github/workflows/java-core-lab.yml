@@ -1,0 +1,32 @@
+name: Java Core Lab CI
+
+on:
+  push:
+    paths:
+      - "Practice/java-core-lab/**"
+      - ".github/workflows/java-core-lab.yml"
+  pull_request:
+    paths:
+      - "Practice/java-core-lab/**"
+      - ".github/workflows/java-core-lab.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Practice/java-core-lab
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run unit tests
+        run: mvn --batch-mode --no-transfer-progress test
+      - name: Package project
+        run: mvn --batch-mode --no-transfer-progress package
