@@ -10,6 +10,7 @@
 - [02｜面向对象](../Topics/02-面向对象.md)
 - [03｜集合与泛型](../Topics/03-集合与泛型.md)
 - [13｜HashMap 底层原理与源码分析](../Topics/13-HashMap底层原理与源码分析.md)
+- [14｜ArrayList 与集合源码阅读](../Topics/14-ArrayList与集合源码.md)
 - [04｜异常与资源管理](../Topics/04-异常与资源管理.md)
 - [05｜Lambda 与 Stream](../Topics/05-Lambda与Stream.md)
 
@@ -17,6 +18,7 @@
 
 - [06｜JVM 与内存](../Topics/06-JVM与内存.md)
 - [07｜并发编程](../Topics/07-并发编程.md)
+- [15｜线程池设计与任务治理](../Topics/15-线程池设计与任务治理.md)
 - [08｜IO、NIO 与网络](../Topics/08-IO-NIO与网络.md)
 - [09｜SQL 与 JDBC](../Topics/09-SQL与JDBC.md)
 - [10｜Maven 与测试](../Topics/10-Maven与测试.md)
