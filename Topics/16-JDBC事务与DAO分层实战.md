@@ -98,3 +98,30 @@ try {
 - [JDBC Basics](https://docs.oracle.com/javase/tutorial/jdbc/basics/)
 - [Connection API](https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/Connection.html)
 - [PreparedStatement API](https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/PreparedStatement.html)
+## 6. 库存审计：让状态变化可追踪
+
+业务表只记录“现在有多少库存”，审计表记录“库存为什么发生变化”。本练习通过 `stock_audit` 记录：
+
+| 字段 | 含义 |
+|---|---|
+| `operation` | `REGISTER`、`BORROW`、`RETURN` 等操作类型 |
+| `before_count` / `after_count` | 变更前后的可借库存 |
+| `operator_name` | 发起操作的人或系统主体 |
+| `reason` | 操作原因 |
+| `occurred_at` | 数据库生成的操作时间 |
+
+库存更新、借阅记录和审计记录必须放在同一个事务里。否则可能出现库存已扣减、但借阅或审计插入失败的状态不一致。
+
+```mermaid
+flowchart TD
+    A[借阅请求] --> B[开启事务]
+    B --> C[锁定库存行]
+    C --> D{库存大于 0?}
+    D -- 否 --> E[回滚并拒绝]
+    D -- 是 --> F[扣减库存]
+    F --> G[写入借阅记录]
+    G --> H[写入库存审计]
+    H --> I[提交事务]
+```
+
+**工程注意：** `SELECT ... FOR UPDATE` 的锁行为依赖具体数据库与隔离级别；需要在生产目标数据库中进行并发集成测试。审计表本身也应通过数据库权限限制直接修改或删除，必要时转存到独立审计系统。
