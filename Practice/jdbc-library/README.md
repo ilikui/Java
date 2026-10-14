@@ -32,9 +32,10 @@ flowchart TD
 - `JdbcBookDao`：参数化 SQL 与 CRUD 实现。
 - `BookService`：注册图书、借阅、归还、库存查询和按图书查询借阅历史；多条 SQL 在同一事务内提交或回滚。
 - `LoanRecord`：不可变借阅历史读取模型，未归还记录的 `returnedAt` 为 `null`。
+- `StockAuditRecord`：库存审计记录，保存操作类型、变化前后库存、操作人、原因与时间。
 - `LibraryDemo`：演示基本 DAO 调用。
 - `JdbcBookDaoTest`：覆盖 CRUD、文本参数和非法数据。
-- `BookServiceTest`：覆盖借阅、库存耗尽、归还、重复归还、历史查询与失败场景。
+- `BookServiceTest`：覆盖借阅、库存耗尽、归还、重复归还、借阅历史与库存审计查询。
 - `ConcurrentBorrowingTest`：使用两个独立数据库连接同时借阅，验证库存为 1 时只能成功一笔。
 
 ## 事务与并发注意事项
@@ -48,6 +49,6 @@ flowchart TD
 ## 后续练习
 
 1. 为借阅增加到期时间、借阅人编号，并分页查询历史记录。
-2. 添加库存变更审计表，记录操作人、前后库存和原因。
+2. 已加入库存变更审计表；后续可增加管理员补库存、盘点调整等操作类型。
 3. 已加入独立连接并发借阅测试；在目标生产数据库上补做并发与隔离级别验证。
 4. 将业务接口迁移为 Spring Boot REST API，并为 Service 编写集成测试。
