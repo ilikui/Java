@@ -14,6 +14,8 @@
 - [线程池设计与任务治理](Topics/15-线程池设计与任务治理.md)
 - [JDBC 事务与 DAO 分层实战](Topics/16-JDBC事务与DAO分层实战.md)
 - [JDBC 图书管理练习项目](Practice/jdbc-library/README.md)
+- [Spring Boot REST API 实战专题](Topics/17-SpringBootRESTAPI实战.md)
+- [Spring Boot 图书 REST API 项目](Practice/springboot-library-api/README.md)
 - [学习进度与项目清单](RoadMap/学习进度.md)
 - [原有路线图（Excalidraw）](RoadMap/Java.excalidraw)
 
