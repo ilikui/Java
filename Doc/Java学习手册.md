@@ -22,6 +22,7 @@
 - [08｜IO、NIO 与网络](../Topics/08-IO-NIO与网络.md)
 - [09｜SQL 与 JDBC](../Topics/09-SQL与JDBC.md)
 - [16｜JDBC 事务与 DAO 分层实战](../Topics/16-JDBC事务与DAO分层实战.md)
+- [17｜Spring Boot REST API 实战](../Topics/17-SpringBootRESTAPI实战.md)
 - [10｜Maven 与测试](../Topics/10-Maven与测试.md)
 
 ### 应用开发与面试
@@ -83,6 +84,7 @@ mindmap
 ### 可运行项目
 
 - [JDBC 图书管理练习项目](../Practice/jdbc-library/README.md)
+- [Spring Boot 图书 REST API 项目](../Practice/springboot-library-api/README.md)
 
 ## 官方资料
 
