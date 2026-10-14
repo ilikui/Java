@@ -10,6 +10,8 @@
 
 - [Java 学习路线](RoadMap/学习路线.md)
 - [学习手册与专题导航](Doc/Java学习手册.md)
+- [ArrayList 与集合源码阅读](Topics/14-ArrayList与集合源码.md)
+- [线程池设计与任务治理](Topics/15-线程池设计与任务治理.md)
 - [学习进度与项目清单](RoadMap/学习进度.md)
 - [原有路线图（Excalidraw）](RoadMap/Java.excalidraw)
 
