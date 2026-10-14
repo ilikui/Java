@@ -32,6 +32,13 @@ class BookServiceTest {
         assertEquals(1, service.availableCopies(bookId));
         assertThrows(IllegalStateException.class, () -> service.returnBook(loanId));
         assertEquals(1, service.availableCopies(bookId), "duplicate return must not inflate stock");
+
+        var history = service.findLoanHistory(bookId);
+        assertEquals(1, history.size());
+        assertEquals("Alice", history.get(0).borrower());
+        assertNotNull(history.get(0).borrowedAt());
+        assertNotNull(history.get(0).returnedAt());
+        assertThrows(IllegalArgumentException.class, () -> service.findLoanHistory(0));
     }
 
     @Test void invalidRegistrationDoesNotCreateBook() throws SQLException {
