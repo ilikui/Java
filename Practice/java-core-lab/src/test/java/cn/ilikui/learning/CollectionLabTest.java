@@ -49,7 +49,7 @@ class CollectionLabTest {
     void safeAverageUsesLongAccumulationAndSupportsNegativeNumbers() {
         assertEquals(2.0, CollectionLab.safeAverage(List.of(1, 2, 3)));
         assertEquals(-2.0, CollectionLab.safeAverage(List.of(-1, -2, -3)));
-        assertEquals(2147483647.5,
+        assertEquals(2147483647.0,
                 CollectionLab.safeAverage(List.of(Integer.MAX_VALUE, Integer.MAX_VALUE)));
     }
 
