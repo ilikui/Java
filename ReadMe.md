@@ -78,7 +78,7 @@ flowchart TD
 ## 可运行练习
 
 - [Java Core Lab：集合算法与 JUnit 5 测试](Practice/java-core-lab/README.md)
-- [JDBC 图书管理：DAO、CRUD 与 JUnit 5](Practice/jdbc-library/README.md)
+- [JDBC 图书管理：DAO、CRUD、事务借阅与 JUnit 5](Practice/jdbc-library/README.md)
 - 使用 JDK 17 + Maven，执行 `cd Practice/java-core-lab && mvn test`。
 - GitHub Actions 已配置自动测试工作流；工作流运行结果需以仓库 Actions 页面为准。
 
