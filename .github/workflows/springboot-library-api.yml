@@ -1,0 +1,35 @@
+name: Spring Boot Library API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Practice/springboot-library-api/**'
+      - '.github/workflows/springboot-library-api.yml'
+  pull_request:
+    paths:
+      - 'Practice/springboot-library-api/**'
+      - '.github/workflows/springboot-library-api.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Test
+        working-directory: Practice/springboot-library-api
+        run: mvn --batch-mode --no-transfer-progress test
+      - name: Package
+        working-directory: Practice/springboot-library-api
+        run: mvn --batch-mode --no-transfer-progress package
