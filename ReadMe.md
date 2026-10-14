@@ -72,6 +72,12 @@ flowchart TD
 5. Spring Boot 待办 API：REST、校验、持久化、测试、日志。
 6. 综合项目：补充 README、架构图、启动说明、测试方法与已知限制。
 
+## 可运行练习
+
+- [Java Core Lab：集合算法与 JUnit 5 测试](Practice/java-core-lab/README.md)
+- 使用 JDK 17 + Maven，执行 `cd Practice/java-core-lab && mvn test`。
+- GitHub Actions 已配置自动测试工作流；工作流运行结果需以仓库 Actions 页面为准。
+
 ## 原有资料
 
 - `JavaFly/`：保留原有项目与相关配置。
