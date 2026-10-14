@@ -1,0 +1,35 @@
+name: JDBC Library Practice
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Practice/jdbc-library/**'
+      - '.github/workflows/jdbc-library.yml'
+  pull_request:
+    paths:
+      - 'Practice/jdbc-library/**'
+      - '.github/workflows/jdbc-library.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run unit tests
+        working-directory: Practice/jdbc-library
+        run: mvn --batch-mode --no-transfer-progress test
+      - name: Package
+        working-directory: Practice/jdbc-library
+        run: mvn --batch-mode --no-transfer-progress package
