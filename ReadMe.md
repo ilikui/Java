@@ -12,6 +12,7 @@
 - [学习手册与专题导航](Doc/Java学习手册.md)
 - [ArrayList 与集合源码阅读](Topics/14-ArrayList与集合源码.md)
 - [线程池设计与任务治理](Topics/15-线程池设计与任务治理.md)
+- [JDBC 事务与 DAO 分层实战](Topics/16-JDBC事务与DAO分层实战.md)
 - [学习进度与项目清单](RoadMap/学习进度.md)
 - [原有路线图（Excalidraw）](RoadMap/Java.excalidraw)
 
@@ -77,6 +78,7 @@ flowchart TD
 ## 可运行练习
 
 - [Java Core Lab：集合算法与 JUnit 5 测试](Practice/java-core-lab/README.md)
+- [JDBC 图书管理：DAO、CRUD 与 JUnit 5](Practice/jdbc-library/README.md)
 - 使用 JDK 17 + Maven，执行 `cd Practice/java-core-lab && mvn test`。
 - GitHub Actions 已配置自动测试工作流；工作流运行结果需以仓库 Actions 页面为准。
 
