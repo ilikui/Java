@@ -5,6 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /** Business operations whose multi-statement changes must be atomic. */
@@ -73,6 +77,29 @@ public final class BookService {
             }
             return null;
         });
+    }
+
+    /** Returns all loans for a book, oldest first; active loans have a null returnedAt. */
+    public List<LoanRecord> findLoanHistory(long bookId) throws SQLException {
+        if (bookId <= 0) throw new IllegalArgumentException("bookId must be positive");
+        String sql = "SELECT id, book_id, borrower, borrowed_at, returned_at FROM loans WHERE book_id = ? ORDER BY id";
+        List<LoanRecord> history = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, bookId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp borrowed = rs.getTimestamp("borrowed_at");
+                    Timestamp returned = rs.getTimestamp("returned_at");
+                    history.add(new LoanRecord(
+                            rs.getLong("id"),
+                            rs.getLong("book_id"),
+                            rs.getString("borrower"),
+                            borrowed == null ? null : borrowed.toLocalDateTime(),
+                            returned == null ? null : returned.toLocalDateTime()));
+                }
+            }
+        }
+        return List.copyOf(history);
     }
 
     public int availableCopies(long bookId) throws SQLException {
