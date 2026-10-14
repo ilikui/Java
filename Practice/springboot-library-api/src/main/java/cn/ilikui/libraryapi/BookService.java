@@ -3,8 +3,11 @@ package cn.ilikui.libraryapi;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.sql.PreparedStatement;
 import java.util.List;
 
 @Service
@@ -32,13 +35,21 @@ public class BookService {
 
     @Transactional
     public Book create(BookRequest request) {
-        Long id = jdbc.queryForObject(
-                "INSERT INTO books(title, author, price) VALUES (?, ?, ?) RETURNING id",
-                Long.class, request.title().trim(), request.author().trim(), request.price());
-        if (id == null) {
+        KeyHolder keys = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO books(title, author, price) VALUES (?, ?, ?)",
+                    new String[]{"id"});
+            statement.setString(1, request.title().trim());
+            statement.setString(2, request.author().trim());
+            statement.setBigDecimal(3, request.price());
+            return statement;
+        }, keys);
+        Number key = keys.getKey();
+        if (key == null) {
             throw new IllegalStateException("数据库未返回新图书 ID");
         }
-        return findById(id);
+        return findById(key.longValue());
     }
 
     @Transactional
