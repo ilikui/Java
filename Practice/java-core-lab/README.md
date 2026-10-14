@@ -38,6 +38,9 @@ mvn -q exec:java -Dexec.mainClass="cn.ilikui.learning.CollectionLab"
 - `topK`：按频次降序、单词字典序升序返回前 K 项，练习排序规则和确定性输出。
 - `safeAverage`：处理空集合与整数溢出风险，练习边界条件和数值类型选择。
 - `CollectionLabTest`：JUnit 5 自动化测试，覆盖正常输入、空输入、大小写、非法参数和并列排序。
+- `HashMapLab`：演示 `equals` / `hashCode` 契约与等价键覆盖行为。
+- `ConcurrencyLab`：演示 `AtomicInteger` 原子更新。
+- `HashMapLabTest` 与 `ConcurrencyLabTest`：覆盖键相等性与多线程计数。
 
 ## 练习任务
 
@@ -46,6 +49,7 @@ mvn -q exec:java -Dexec.mainClass="cn.ilikui.learning.CollectionLab"
 3. 实现一个按字段分组统计订单金额的方法。
 4. 对每个新功能先写测试，再实现代码；不要只验证“正常路径”。
 5. 将测试结果、失败原因和修复过程整理成一张复盘卡片。
+6. 阅读 [HashMap 底层原理专题](../../Topics/13-HashMap底层原理与源码分析.md)，再修改 `EmployeeKey` 的相等性规则进行实验。
 
 ## 完成标准
 
