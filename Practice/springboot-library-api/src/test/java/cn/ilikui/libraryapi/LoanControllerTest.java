@@ -87,6 +87,15 @@ class LoanControllerTest {
                 .andExpect(jsonPath("$.availableCopies").value(1))
                 .andExpect(jsonPath("$.borrowedCopies").value(0));
 
+        // Reapplying the current total is a no-op and must not create a misleading audit event.
+        mvc.perform(patch("/api/books/{bookId}/stock", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"totalCopies":3}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCopies").value(3));
+
         mvc.perform(get("/api/books/{bookId}/stock-audit", bookId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
