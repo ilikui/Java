@@ -1,6 +1,8 @@
 package cn.ilikui.libraryapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,12 +22,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -151,6 +155,45 @@ class PostgresLibraryApiIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].action").value("BORROW"))
                 .andExpect(jsonPath("$[1].action").value("ADJUST"));
+    }
+
+
+    @Test
+    void existingPostgresSchemaCanUpgradeFromV3ToV4WithoutLosingBooks() {
+        String schema = "migration_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+        try {
+            Flyway.configure()
+                    .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                    .schemas(schema)
+                    .defaultSchema(schema)
+                    .locations("classpath:db/migration")
+                    .target(MigrationVersion.fromVersion("3"))
+                    .load()
+                    .migrate();
+
+            jdbc.update("INSERT INTO \"" + schema + "\".books(title, author, price) VALUES (?, ?, ?)",
+                    "V3 旧数据", "迁移测试", 12.50);
+
+            Flyway.configure()
+                    .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                    .schemas(schema)
+                    .defaultSchema(schema)
+                    .locations("classpath:db/migration")
+                    .load()
+                    .migrate();
+
+            assertEquals(1, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM \"" + schema + "\".books WHERE title = ?",
+                    Integer.class, "V3 旧数据"));
+            assertEquals(1, jdbc.queryForObject(
+                    "SELECT total_copies FROM \"" + schema + "\".books WHERE title = ?",
+                    Integer.class, "V3 旧数据"));
+            assertEquals(1, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM \"" + schema + "\".stock_adjustment_audit",
+                    Integer.class));
+        } finally {
+            jdbc.execute("DROP SCHEMA IF EXISTS \"" + schema + "\" CASCADE");
+        }
     }
 
     @Test
