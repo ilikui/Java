@@ -7,8 +7,9 @@
 - JDK 17 / Spring Boot 3.4.4
 - Spring Web、Bean Validation、Spring JDBC
 - H2（默认开发数据库）
-- Flyway 数据库迁移
+- Flyway 数据库迁移（H2 / PostgreSQL）
 - JUnit 5 + MockMvc
+- Testcontainers PostgreSQL 集成测试（需要 Docker；无 Docker 时自动跳过）
 
 ## 启动与测试
 
@@ -84,6 +85,14 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 
 不要把 SQL、堆栈、密码或内部基础设施细节直接返回给客户端。
 
+## PostgreSQL 集成测试
+
+常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整和审计查询是否能在 PostgreSQL 上协同工作。
+
+- 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
+- Docker 不可用时，Testcontainers 会跳过该集成测试，H2 测试仍可照常执行。
+- CI 若要强制执行 PostgreSQL 测试，应确保 runner 支持 Docker，并检查测试报告中该测试没有被跳过。
+
 ## 数据库配置
 
 默认使用 H2。可以通过环境变量覆盖：
@@ -145,5 +154,5 @@ flowchart TD
 
 ## 下一步
 
-1. 加入 PostgreSQL/MySQL profile 与 Testcontainers 集成测试。
+1. 扩展 PostgreSQL 集成测试到并发借阅、事务回滚和迁移升级场景；再评估 MySQL 兼容性。
 2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
