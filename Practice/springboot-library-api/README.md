@@ -76,7 +76,8 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 | 404 | `LOAN_NOT_FOUND` | 借阅记录不存在 |
 | 409 | `DUPLICATE_ISBN` | ISBN 已被其他图书使用 |
 | 409 | `OUT_OF_STOCK` | 没有可借库存 |
-| 409 | `LOAN_ALREADY_RETURNED` | 借阅记录已经归还 |\n| 409 | `BOOK_HAS_LOAN_HISTORY` | 图书存在借阅历史，不能删除 |
+| 409 | `LOAN_ALREADY_RETURNED` | 借阅记录已经归还 |
+| 409 | `BOOK_HAS_LOAN_HISTORY` | 图书存在借阅历史，不能删除 |
 
 不要把 SQL、堆栈、密码或内部基础设施细节直接返回给客户端。
 
