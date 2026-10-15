@@ -7,9 +7,9 @@
 - JDK 17 / Spring Boot 3.4.4
 - Spring Web、Bean Validation、Spring JDBC
 - H2（默认开发数据库）
-- Flyway 数据库迁移（H2 / PostgreSQL）
+- Flyway 数据库迁移（H2 / PostgreSQL / MySQL 独立目录）
 - JUnit 5 + MockMvc
-- Testcontainers PostgreSQL 集成测试（需要 Docker；无 Docker 时自动跳过）
+- Testcontainers PostgreSQL 与 MySQL 8.4 集成测试（需要 Docker；无 Docker 时自动跳过）
 
 ## 启动与测试
 
@@ -87,10 +87,11 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 
 ## PostgreSQL 集成测试
 
-常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，审计写入失败后库存调整事务是否完整回滚，以及从 V3 升级到 V4 时旧图书数据是否保留。
+常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询、并发借阅、审计写入失败回滚，以及 V3→V4 升级时旧数据保留。`MySqlLibraryApiIntegrationTest` 使用 MySQL 8.4，检查 MySQL 专用 V1–V4 迁移、CRUD/借阅/库存审计、最后一册并发借阅与审计失败后的事务回滚。
 
 - 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
-- Docker 不可用时，Testcontainers 会跳过该集成测试，H2 测试仍可照常执行。
+- Docker 不可用时，Testcontainers 会跳过数据库容器集成测试，H2 测试仍可照常执行。
+- MySQL 使用 `application-mysql.yml` 和 `db/migration/mysql`，通过 `SPRING_PROFILES_ACTIVE=mysql` 启动；测试会固定连接会话时区为 UTC。
 - CI 若要强制执行 PostgreSQL 测试，应确保 runner 支持 Docker，并检查测试报告中该测试没有被跳过。
 
 ## 数据库配置
@@ -105,7 +106,7 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 - `DB_DRIVER`
 - `SERVER_PORT`
 
-切换到 PostgreSQL/MySQL 时，还需要添加相应 JDBC 驱动，并审查 Flyway DDL、生成主键策略、分页 SQL 和大小写规则；不能只替换连接字符串就假设完全兼容。
+PostgreSQL 使用默认迁移目录；MySQL 使用 `mysql` profile 与独立迁移目录。MySQL 连接参数应设置 UTC 会话时区。不要只替换连接字符串就假设完全兼容；上线前仍需在目标环境执行集成测试并审查排序规则、索引与锁行为。
 
 ## 架构
 
@@ -140,6 +141,7 @@ flowchart TD
 - `V3__add_borrowing_and_stock_audit.sql` 增加库存字段、借阅记录表和借还库存审计表；已有图书默认总库存与可借库存均为 1。
 - `V4__add_stock_adjustment_audit.sql` 为总库存调整建立独立审计表，避免改写已发布的 V3 迁移或放宽既有审计约束。
 - 已应用的迁移脚本应视为不可变；后续结构变化应新增版本，不要改写已在环境执行过的迁移。
+- MySQL 的 V1–V4 独立迁移位于 `src/main/resources/db/migration/mysql`，以 MySQL 8.4 / InnoDB 为目标；`DATETIME(6)` 仅按 UTC 存取时间，不提供带时区列语义。
 - H2 适合本地练习，但不能替代目标生产数据库上的集成测试。
 
 ## 库存调整
@@ -156,5 +158,5 @@ flowchart TD
 
 ## 下一步
 
-1. 已新增 [数据库兼容性与迁移策略专题](../../Topics/18-数据库兼容性与迁移策略.md)；MySQL 仍需独立迁移脚本和真实数据库集成测试。
+1. 已新增 [数据库兼容性与迁移策略专题](../../Topics/18-数据库兼容性与迁移策略.md)，并提交 MySQL 独立 V1–V4 迁移、`mysql` profile 与 Testcontainers 测试代码；仍需在 Docker 环境实际执行并修复运行中发现的问题。
 2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
