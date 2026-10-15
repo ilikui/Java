@@ -34,6 +34,7 @@ mvn spring-boot:run
 | POST | `/api/books/{bookId}/loans` | 借阅图书 | 201 |
 | POST | `/api/loans/{loanId}/return` | 归还图书 | 200 |
 | GET | `/api/books/{bookId}/stock` | 查询库存 | 200 |
+| PATCH | `/api/books/{bookId}/stock` | 调整图书总库存 | 200 |
 | GET | `/api/books/{bookId}/loans` | 查询借阅记录 | 200 |
 | GET | `/api/books/{bookId}/stock-audit` | 查询库存审计流水 | 200 |
 
@@ -79,6 +80,7 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 | 409 | `OUT_OF_STOCK` | 没有可借库存 |
 | 409 | `LOAN_ALREADY_RETURNED` | 借阅记录已经归还 |
 | 409 | `BOOK_HAS_LOAN_HISTORY` | 图书存在借阅历史，不能删除 |
+| 409 | `STOCK_BELOW_BORROWED` | 新总库存小于当前借出数量 |
 
 不要把 SQL、堆栈、密码或内部基础设施细节直接返回给客户端。
 
@@ -117,15 +119,29 @@ flowchart TD
 - 非法页码、非数字页码、超大 page size 和不在白名单中的排序字段。
 - 格式错误的 JSON 与请求字段类型不匹配，统一返回 `INVALID_REQUEST_BODY`。
 - 借阅、无库存冲突、归还、重复归还、库存查询和审计流水。
+- 库存调整不能将总库存降至已借出数量以下；调整与审计在同一事务内完成，并通过库存审计接口显示 `ADJUST` 事件。
 - 并发请求争抢最后一本图书时，只允许一个请求成功。
 
 ## 数据库迁移原则
 
 - `V1__create_books.sql` 创建图书表及搜索索引。
 - `V2__add_isbn_to_books.sql` 增加 ISBN 字段和唯一索引。
-- `V3__add_borrowing_and_stock_audit.sql` 增加库存字段、借阅记录表和库存审计表；已有图书默认总库存与可借库存均为 1。
+- `V3__add_borrowing_and_stock_audit.sql` 增加库存字段、借阅记录表和借还库存审计表；已有图书默认总库存与可借库存均为 1。
+- `V4__add_stock_adjustment_audit.sql` 为总库存调整建立独立审计表，避免改写已发布的 V3 迁移或放宽既有审计约束。
 - 已应用的迁移脚本应视为不可变；后续结构变化应新增版本，不要改写已在环境执行过的迁移。
 - H2 适合本地练习，但不能替代目标生产数据库上的集成测试。
+
+## 库存调整
+
+通过 `PATCH /api/books/{bookId}/stock` 调整总库存：
+
+```json
+{
+  "totalCopies": 5
+}
+```
+
+系统先锁定图书库存行，再计算已借出数量（`totalCopies - availableCopies`）。新总库存不能小于已借出数量，否则返回 `409 STOCK_BELOW_BORROWED`；成功后按已借出数量重新计算可借库存。库存变更与 V4 审计记录位于同一事务中。 `GET /api/books/{bookId}/stock-audit` 合并展示借出、归还和调整事件。无变化的调整请求不会产生冗余审计记录。
 
 ## 下一步
 
