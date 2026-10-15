@@ -87,7 +87,7 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 
 ## PostgreSQL 集成测试
 
-常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询，以及两个请求并发争抢最后一册时的库存保护。
+常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，以及审计写入失败后库存调整事务是否完整回滚。
 
 - 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
 - Docker 不可用时，Testcontainers 会跳过该集成测试，H2 测试仍可照常执行。
@@ -129,7 +129,7 @@ flowchart TD
 - 格式错误的 JSON 与请求字段类型不匹配，统一返回 `INVALID_REQUEST_BODY`。
 - 借阅、无库存冲突、归还、重复归还、库存查询和审计流水。
 - 库存调整不能将总库存降至已借出数量以下；调整与审计在同一事务内完成，并通过库存审计接口显示 `ADJUST` 事件。
-- H2 回归测试覆盖并发请求争抢最后一本图书；PostgreSQL Testcontainers 测试也验证同一并发约束。
+- H2 回归测试覆盖并发请求争抢最后一本图书；PostgreSQL Testcontainers 测试也验证同一并发约束，并通过 PostgreSQL 触发器人为制造库存审计写入失败，检查库存更新与审计流水均未提交。
 
 ## 数据库迁移原则
 
@@ -154,5 +154,5 @@ flowchart TD
 
 ## 下一步
 
-1. 扩展 PostgreSQL 集成测试到并发借阅、事务回滚和迁移升级场景；再评估 MySQL 兼容性。
+1. PostgreSQL 集成测试已补充并发借阅与库存调整事务回滚场景；后续验证迁移升级路径，再评估 MySQL 兼容性。
 2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
