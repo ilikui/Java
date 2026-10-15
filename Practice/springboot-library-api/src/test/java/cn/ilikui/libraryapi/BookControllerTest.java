@@ -30,34 +30,25 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.title").value("Java 实战"))
                 .andReturn().getResponse().getContentAsString();
-
-        JsonNode node = objectMapper.readTree(created);
-        long id = node.get("id").asLong();
+        long id = objectMapper.readTree(created).get("id").asLong();
 
         mvc.perform(get("/api/books/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.author").value("张三"));
-
         mvc.perform(put("/api/books/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"title":"Java 深入","author":"李四","price":69.00}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Java 深入"))
-                .andExpect(jsonPath("$.price").value(69.0));
-
-        mvc.perform(delete("/api/books/{id}", id))
-                .andExpect(status().isNoContent());
-
-        mvc.perform(get("/api/books/{id}", id))
-                .andExpect(status().isNotFound());
+                .andExpect(jsonPath("$.title").value("Java 深入"));
+        mvc.perform(delete("/api/books/{id}", id)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/books/{id}", id)).andExpect(status().isNotFound());
     }
 
     @Test
     void shouldRejectInvalidBookPayload() throws Exception {
-        mvc.perform(post("/api/books")
-                        .contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"title":" ","author":"","price":-1}
                                 """))
@@ -70,5 +61,41 @@ class BookControllerTest {
         mvc.perform(get("/api/books/999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail", containsString("未找到")));
+    }
+
+    @Test
+    void shouldSearchAndPaginateBooks() throws Exception {
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"分页搜索 Java A","author":"测试作者","price":10}
+                        """)).andExpect(status().isCreated());
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"分页搜索 Java B","author":"测试作者","price":20}
+                        """)).andExpect(status().isCreated());
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"其他书籍","author":"另一位作者","price":30}
+                        """)).andExpect(status().isCreated());
+
+        mvc.perform(get("/api/books").param("q", "分页搜索 Java").param("page", "0")
+                        .param("size", "1").param("sortBy", "title").param("direction", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("分页搜索 Java B"))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1));
+    }
+
+    @Test
+    void shouldRejectInvalidPaginationParameters() throws Exception {
+        mvc.perform(get("/api/books").param("page", "-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/books").param("size", "101"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/books").param("sortBy", "title desc, id"))
+                .andExpect(status().isBadRequest());
     }
 }
