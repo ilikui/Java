@@ -87,7 +87,7 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 
 ## PostgreSQL 集成测试
 
-常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整和审计查询是否能在 PostgreSQL 上协同工作。
+常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询，以及两个请求并发争抢最后一册时的库存保护。
 
 - 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
 - Docker 不可用时，Testcontainers 会跳过该集成测试，H2 测试仍可照常执行。
