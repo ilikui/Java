@@ -92,11 +92,11 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 - 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
 - Docker 不可用时，Testcontainers 会跳过数据库容器集成测试，H2 测试仍可照常执行。
 - MySQL 使用 `application-mysql.yml` 和 `db/migration/mysql`，通过 `SPRING_PROFILES_ACTIVE=mysql` 启动；测试会固定连接会话时区为 UTC。
-- CI 若要强制执行 PostgreSQL 测试，应确保 runner 支持 Docker，并检查测试报告中该测试没有被跳过。
+- GitHub Actions 的 `springboot-library-api.yml` 在 Ubuntu runner 上运行 H2 与 PostgreSQL/MySQL Testcontainers 测试，并上传 Surefire XML 报告。请检查报告确认两个数据库集成测试均实际执行，而非因 Docker 不可用而跳过。
 
 ## 数据库配置
 
-数据库方言、Flyway 迁移目录、行锁和目标库测试要求见 [数据库兼容性与迁移策略专题](../../Topics/18-数据库兼容性与迁移策略.md)。当前尚未声明 MySQL 兼容，需先完成对应迁移脚本和 Testcontainers 集成测试。
+数据库方言、Flyway 迁移目录、行锁和目标库测试要求见 [数据库兼容性与迁移策略专题](../../Topics/18-数据库兼容性与迁移策略.md)。已加入 MySQL 8.4 专用迁移和 Testcontainers 测试代码，但兼容性结论仍取决于 Docker/CI 实际执行结果。
 
 默认使用 H2。可以通过环境变量覆盖：
 
@@ -159,4 +159,5 @@ flowchart TD
 ## 下一步
 
 1. 已新增 [数据库兼容性与迁移策略专题](../../Topics/18-数据库兼容性与迁移策略.md)，并提交 MySQL 独立 V1–V4 迁移、`mysql` profile 与 Testcontainers 测试代码；仍需在 Docker 环境实际执行并修复运行中发现的问题。
-2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
+2. 在 CI 实际确认 PostgreSQL 与 MySQL Testcontainers 测试通过，并为 MySQL V3→V4 升级测试保留报告。
+3. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
