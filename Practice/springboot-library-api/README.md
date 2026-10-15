@@ -1,6 +1,6 @@
 # Spring Boot 图书 REST API
 
-独立的 Spring Boot 模块，练习 REST、参数校验、JDBC、事务、统一异常响应、分页搜索、数据库迁移与 MockMvc 集成测试。不会改动现有的 JDBC 项目。
+独立的 Spring Boot 模块，练习 REST、参数校验、JDBC、事务、统一异常响应、分页搜索、价格过滤、ISBN 唯一约束、数据库迁移与 MockMvc 集成测试。不会改动现有的 JDBC 项目。
 
 ## 技术栈
 
@@ -32,18 +32,19 @@ mvn spring-boot:run
 | PUT | `/api/books/{id}` | 更新图书 | 200 |
 | DELETE | `/api/books/{id}` | 删除图书 | 204 |
 
-### 分页与搜索
+### 分页、搜索与价格筛选
 
 `GET /api/books?q=java&page=0&size=20&sortBy=title&direction=asc&minPrice=10&maxPrice=100`
 
 - `q`：可选，按书名或作者进行不区分大小写的包含匹配。
 - `page`：从 0 开始，默认 0。
 - `size`：每页数量，默认 20，允许 1–100，防止请求超大结果集。
-- `sortBy`：只允许 `id`、`title`、`author`、`price`，默认 `id`。
-- `direction`：只允许 `asc` 或 `desc`，默认 `asc`。\n- `minPrice` / `maxPrice`：可选价格下限和上限，必须非负；同时传入时下限不能大于上限。\n- 排序支持 `id`、`title`、`author`、`price`、`isbn`；同值时以 `id ASC` 作为稳定的次级排序。
-- 响应包含 `items`、`totalElements`、`page`、`size`、`totalPages`。
+- `sortBy`：只允许 `id`、`title`、`author`、`price`、`isbn`，默认 `id`。
+- `direction`：只允许 `asc` 或 `desc`，默认 `asc`。
+- `minPrice` / `maxPrice`：可选价格下限和上限，必须非负；同时传入时下限不能大于上限。
+- 响应包含 `items`、`totalElements`、`page`、`size`、`totalPages`。当主排序字段相同时，以 `id ASC` 作为稳定的次级排序。
 
-排序字段无法通过 SQL 参数占位符绑定，因此先用白名单校验，避免把用户输入直接拼接进 SQL。分页和过滤值仍通过参数化 SQL 传入。
+排序字段无法通过 SQL 参数占位符绑定，因此先用白名单校验，避免把用户输入直接拼接进 SQL。分页、关键字和价格值都通过参数化 SQL 传入。
 
 ### 新增/更新 JSON
 
@@ -51,9 +52,25 @@ mvn spring-boot:run
 {
   "title": "Java 实战",
   "author": "张三",
-  "price": 59.90
+  "price": 59.90,
+  "isbn": "9787111111111"
 }
 ```
+
+ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时保存为 `NULL`。重复 ISBN 返回 HTTP 409。当前校验 ISBN 字符格式与长度，并不验证 ISBN 校验位。
+
+### 统一错误码
+
+错误响应基于 Problem Details，额外包含稳定的 `code` 字段：
+
+| HTTP 状态 | code | 含义 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | 请求体字段校验失败 |
+| 400 | `INVALID_QUERY` | 分页、排序或价格范围参数非法 |
+| 404 | `BOOK_NOT_FOUND` | 图书不存在 |
+| 409 | `DUPLICATE_ISBN` | ISBN 已被其他图书使用 |
+
+不要把 SQL、堆栈、密码或内部基础设施细节直接返回给客户端。
 
 ## 数据库配置
 
@@ -76,21 +93,28 @@ flowchart TD
     C --> D[BookService]
     D --> E[JdbcTemplate]
     E --> F[(books 表)]
-    G[Flyway] --> F
+    G[Flyway 迁移] --> F
     B --> H[ApiExceptionHandler]
     H --> I[统一 400 / 404 / 409 响应]
 ```
 
 ## 测试覆盖
 
-- CRUD 生命周期、参数校验与 404。\n- ISBN 规范化与唯一约束，重复 ISBN 返回 409。\n- 价格区间过滤与稳定业务错误码（`VALIDATION_ERROR`、`INVALID_QUERY`、`BOOK_NOT_FOUND`、`DUPLICATE_ISBN`）。
-- 书名/作者关键字搜索。
-- 分页总数、页数、排序方向。
+- CRUD 生命周期、参数校验与 404。
+- ISBN 规范化与唯一约束，重复 ISBN 返回 409。
+- 价格区间过滤、非法区间和稳定业务错误码。
+- 书名/作者关键字搜索、分页总数、页数与排序方向。
 - 非法页码、超大 page size 和不在白名单中的排序字段。
+
+## 数据库迁移原则
+
+- `V1__create_books.sql` 创建图书表及搜索索引。
+- `V2__add_isbn_to_books.sql` 增加 ISBN 字段和唯一索引。
+- 已应用的迁移脚本应视为不可变；后续结构变化应新增版本，不要改写已在环境执行过的迁移。
+- H2 适合本地练习，但不能替代目标生产数据库上的集成测试。
 
 ## 下一步
 
-1. 增加按价格区间过滤和 ISBN 唯一约束。
-2. 加入 PostgreSQL/MySQL profile 与 Testcontainers 集成测试。
-3. 加入借阅、库存锁定、归还与库存审计。
-4. 增加 OpenAPI、结构化日志与 Docker。
+1. 加入 PostgreSQL/MySQL profile 与 Testcontainers 集成测试。
+2. 加入借阅、库存锁定、归还与库存审计。
+3. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
