@@ -77,7 +77,7 @@ jdbc.update(connection -> {
 
 ## 6. Flyway 数据库迁移
 
-项目使用 `src/main/resources/db/migration/V1__create_books.sql` 创建图书表及搜索索引，并使用 `V2__add_isbn_to_books.sql` 增加可选 ISBN 字段与唯一索引。写入时将 ISBN 去掉连字符并转为大写；不填写 ISBN 时保存为 `NULL`。Flyway 会记录已经执行的迁移版本，适合让开发、测试和部署环境使用可追踪的数据库结构变更。
+项目使用 `src/main/resources/db/migration/V1__create_books.sql` 创建图书表及搜索索引，并使用 `V2__add_isbn_to_books.sql` 增加可选 ISBN 字段与唯一索引，再由 `V3__add_borrowing_and_stock_audit.sql` 增加库存、借阅记录与库存审计表。写入时将 ISBN 去掉连字符并转为大写；不填写 ISBN 时保存为 `NULL`。Flyway 会记录已经执行的迁移版本，适合让开发、测试和部署环境使用可追踪的数据库结构变更。
 
 - 已应用的迁移脚本应视为不可变；结构变化应新增 `V2__...`，而不是修改已在环境执行过的 V1。
 - 数据库凭据应从环境变量或密钥管理中注入，不应提交真实密码。
@@ -103,11 +103,29 @@ jdbc.update(connection -> {
 
 还可以继续增加 Service 单元测试、数据库迁移测试，以及针对 PostgreSQL/MySQL 的集成测试。
 
-## 9. 动手练习与面试自测
+## 9. 借阅、归还与库存审计
+
+配套 API 已增加以下接口：
+
+| 方法 | 路径 | 作用 |
+|---|---|---|
+| POST | `/api/books/{bookId}/loans` | 借阅一本图书 |
+| POST | `/api/loans/{loanId}/return` | 归还借阅记录 |
+| GET | `/api/books/{bookId}/stock` | 查询总库存、可借库存与借出数量 |
+| GET | `/api/books/{bookId}/loans` | 查询借阅历史 |
+| GET | `/api/books/{bookId}/stock-audit` | 查询库存变化流水 |
+
+借阅流程在一个 Service 事务内完成：对图书库存行执行 `SELECT ... FOR UPDATE`，检查可借数量，扣减库存，新增借阅记录，再写入库存审计。任何一步失败都会抛出运行时异常并回滚，避免只扣库存却没有借阅记录。
+
+归还流程先锁定借阅记录，再锁定对应图书库存行；只有 `BORROWED` 状态可以归还。重复归还返回 `409 LOAN_ALREADY_RETURNED`，无库存可借返回 `409 OUT_OF_STOCK`。库存审计保留 `BORROW` / `RETURN` 动作、借阅记录 ID、变更后库存和时间。
+
+当前库存模型按每本书一册初始化（总库存与可借库存默认为 1），这是用于学习事务和并发控制的最小实现；后续应补充库存调整接口、权限校验和真实数据库并发压力测试。
+
+## 10. 动手练习与面试自测
 
 - [x] 增加 ISBN 字段与唯一约束，重复 ISBN 返回 409（代码与测试已提交，仍需 CI 验证）。
 - [x] 增加价格区间过滤与稳定的多字段排序（代码与测试已提交，仍需 CI 验证）。
-- [ ] 为列表增加 PostgreSQL/MySQL 的真实数据库集成测试。
+- [ ] 为借阅最后一册图书增加并发压力测试，并验证不会超借。\n- [ ] 为列表增加 PostgreSQL/MySQL 的真实数据库集成测试。
 - [x] 为 400、404、409 定义稳定业务错误码；请求追踪 ID 后续补充。
 - [ ] 解释为什么 SQL 值使用占位符，而排序字段使用白名单。
 - [ ] 解释为什么 Flyway 迁移脚本发布后不应随意改写。
