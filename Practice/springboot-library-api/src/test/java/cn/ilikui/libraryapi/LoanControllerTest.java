@@ -155,4 +155,57 @@ class LoanControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("LOAN_NOT_FOUND"));
     }
+
+
+    @Test
+    void stockAdjustmentMustPreserveBorrowedCopiesAndWriteAudit() throws Exception {
+        String created = mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"库存调整测试书","author":"库存测试","price":29}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(created).get("id").asLong();
+
+        mvc.perform(post("/api/books/{bookId}/loans", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"borrowerName":"库存测试读者"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mvc.perform(patch("/api/books/{bookId}/stock", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"totalCopies":0}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STOCK_BELOW_BORROWED"));
+
+        mvc.perform(patch("/api/books/{bookId}/stock", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"totalCopies":3}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCopies").value(3))
+                .andExpect(jsonPath("$.availableCopies").value(2))
+                .andExpect(jsonPath("$.borrowedCopies").value(1));
+
+        mvc.perform(get("/api/books/{bookId}/stock-audit", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].action").value("BORROW"))
+                .andExpect(jsonPath("$[1].action").value("ADJUST"))
+                .andExpect(jsonPath("$[1].quantity").value(2))
+                .andExpect(jsonPath("$[1].availableAfter").value(2));
+
+        mvc.perform(patch("/api/books/{bookId}/stock", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"totalCopies":-1}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
 }
