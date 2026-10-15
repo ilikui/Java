@@ -33,6 +33,12 @@ public class LoanController {
         return service.stock(bookId);
     }
 
+    @PatchMapping("/api/books/{bookId}/stock")
+    public StockResponse adjustStock(@PathVariable long bookId,
+                                     @Valid @RequestBody StockAdjustmentRequest request) {
+        return service.adjustStock(bookId, request);
+    }
+
     @GetMapping("/api/books/{bookId}/stock-audit")
     public java.util.List<StockAuditRecord> stockAudit(@PathVariable long bookId) {
         return service.stockAudit(bookId);
