@@ -91,7 +91,7 @@ jdbc.update(connection -> {
 - Spring 默认通过代理管理声明式事务；同类内部自调用可能绕过代理。
 - 默认运行时异常会触发回滚；检查型异常需要明确回滚规则。
 - `@RestControllerAdvice` 集中处理异常，避免 Controller 重复 try/catch。
-- 错误响应不应暴露 SQL、堆栈、密码或内部基础设施细节。当前使用稳定业务码 `VALIDATION_ERROR`、`INVALID_QUERY`、`BOOK_NOT_FOUND`、`DUPLICATE_ISBN`；重复 ISBN 返回 HTTP 409。
+- 错误响应不应暴露 SQL、堆栈、密码或内部基础设施细节。当前使用稳定业务码 `VALIDATION_ERROR`、`INVALID_QUERY`、`INVALID_REQUEST_BODY`、`BOOK_NOT_FOUND`、`LOAN_NOT_FOUND`、`DUPLICATE_ISBN` 及借阅冲突码。类型错误的查询参数返回 `INVALID_QUERY`；无法解析的 JSON 或字段类型不匹配返回 `INVALID_REQUEST_BODY`；重复 ISBN 返回 HTTP 409。
 
 ## 8. 测试策略
 
@@ -99,7 +99,8 @@ jdbc.update(connection -> {
 - 新增、查询、更新、删除完整流程；
 - 字段校验失败与不存在的 ID；
 - 书名关键字搜索、价格区间、分页总数、排序方向；
-- 非法页码、超大 page size、非法排序字段、价格区间和重复 ISBN 的 409 响应。
+- 非法页码、非数字查询参数、超大 page size、非法排序字段、价格区间和重复 ISBN 的 409 响应。
+- 格式错误的 JSON 与请求字段类型不匹配时返回稳定的 `INVALID_REQUEST_BODY` 错误码。
 
 还可以继续增加 Service 单元测试、数据库迁移测试，以及针对 PostgreSQL/MySQL 的集成测试。
 
