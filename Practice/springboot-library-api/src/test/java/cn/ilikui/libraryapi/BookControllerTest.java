@@ -24,7 +24,7 @@ class BookControllerTest {
         String created = mvc.perform(post("/api/books")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Java 实战","author":"张三","price":59.90}
+                                {"title":"Java 实战","author":"张三","price":59.90,"isbn":"978-7-111-11111-1"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -38,7 +38,7 @@ class BookControllerTest {
         mvc.perform(put("/api/books/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Java 深入","author":"李四","price":69.00}
+                                {"title":"Java 深入","author":"李四","price":69.00,"isbn":"9787111111128"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Java 深入"));
@@ -67,15 +67,15 @@ class BookControllerTest {
     void shouldSearchAndPaginateBooks() throws Exception {
         mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"title":"分页搜索 Java A","author":"测试作者","price":10}
+                        {"title":"分页搜索 Java A","author":"测试作者","price":10,"isbn":"9787111111135"}
                         """)).andExpect(status().isCreated());
         mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"title":"分页搜索 Java B","author":"测试作者","price":20}
+                        {"title":"分页搜索 Java B","author":"测试作者","price":20,"isbn":"9787111111142"}
                         """)).andExpect(status().isCreated());
         mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"title":"其他书籍","author":"另一位作者","price":30}
+                        {"title":"其他书籍","author":"另一位作者","price":30,"isbn":"9787111111159"}
                         """)).andExpect(status().isCreated());
 
         mvc.perform(get("/api/books").param("q", "分页搜索 Java").param("page", "0")
