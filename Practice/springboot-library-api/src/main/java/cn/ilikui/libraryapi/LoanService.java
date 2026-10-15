@@ -34,6 +34,8 @@ public class LoanService {
                 occurred.toInstant().atOffset(ZoneOffset.UTC));
     };
 
+    private record StockLevels(int totalCopies, int availableCopies) { }
+
     private final JdbcTemplate jdbc;
 
     public LoanService(JdbcTemplate jdbc) {
@@ -116,16 +118,13 @@ public class LoanService {
     }
     @Transactional
     public StockResponse adjustStock(long bookId, StockAdjustmentRequest request) {
-        List<Integer> locked = jdbc.query(
+        StockLevels locked = jdbc.query(
                 "SELECT total_copies, available_copies FROM books WHERE id = ? FOR UPDATE",
-                (rs, rowNum) -> {
-                    java.util.ArrayList<Integer> values = new java.util.ArrayList<>(2);
-                    values.add(rs.getInt("total_copies"));
-                    values.add(rs.getInt("available_copies"));
-                    return values;
-                }, bookId).stream().findFirst().orElseThrow(() -> new BookNotFoundException(bookId));
-        int oldTotal = locked.get(0);
-        int oldAvailable = locked.get(1);
+                (rs, rowNum) -> new StockLevels(
+                        rs.getInt("total_copies"), rs.getInt("available_copies")),
+                bookId).stream().findFirst().orElseThrow(() -> new BookNotFoundException(bookId));
+        int oldTotal = locked.totalCopies();
+        int oldAvailable = locked.availableCopies();
         int borrowed = oldTotal - oldAvailable;
         int newTotal = request.totalCopies();
         if (newTotal < borrowed) {
