@@ -102,7 +102,7 @@ jdbc.update(connection -> {
 - 非法页码、非数字查询参数、超大 page size、非法排序字段、价格区间和重复 ISBN 的 409 响应。
 - 格式错误的 JSON 与请求字段类型不匹配时返回稳定的 `INVALID_REQUEST_BODY` 错误码。
 
-还可以继续增加 Service 单元测试、数据库迁移测试，以及针对 PostgreSQL/MySQL 的集成测试。配套项目现已增加 `PostgresLibraryApiIntegrationTest`：使用 Testcontainers 启动 PostgreSQL 16，覆盖 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，以及审计写入失败后的事务回滚；回滚用 PostgreSQL 触发器模拟审计表写入异常，并确认库存与审计流水都未提交。本地需要 Docker，Docker 不可用时该测试会自动跳过，H2 测试不受影响。
+还可以继续增加 Service 单元测试、数据库迁移测试，以及针对 PostgreSQL/MySQL 的集成测试。配套项目现已增加 `PostgresLibraryApiIntegrationTest`：使用 Testcontainers 启动 PostgreSQL 16，覆盖 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，审计写入失败后的事务回滚，以及从 V3 升级到 V4 的迁移验证；回滚用 PostgreSQL 触发器模拟审计表写入异常，并确认库存与审计流水都未提交。迁移测试在隔离 schema 中先执行 V1–V3，再升级 V4，确认旧图书数据保留且新审计表创建成功。本地需要 Docker，Docker 不可用时该测试会自动跳过，H2 测试不受影响。
 
 ## 9. 借阅、归还与库存审计
 
@@ -129,8 +129,8 @@ jdbc.update(connection -> {
 - [x] 增加价格区间过滤与稳定的多字段排序（代码与测试已提交，仍需 CI 验证）。
 - [x] 增加并发请求争抢最后一册图书的回归测试：应只有一个借阅请求成功（测试代码已提交，仍需 CI 验证）。
 - [x] 增加 PostgreSQL + Testcontainers 集成测试，覆盖迁移、借阅、库存调整、审计与最后一册并发争抢（代码已提交，仍需 CI 实际运行确认）。
-- [x] 增加 PostgreSQL 并发借阅与库存调整事务回滚集成测试（代码已提交，仍需 CI / Docker 环境实际执行确认）。
-- [ ] 增加 Flyway 迁移升级路径测试，并评估 MySQL 兼容性。
+- [x] 增加 PostgreSQL 并发借阅、库存调整事务回滚与 V3→V4 Flyway 迁移升级集成测试（代码已提交，仍需 CI / Docker 环境实际执行确认）。
+- [ ] 评估 MySQL 兼容性，并按目标数据库补齐方言与集成测试。
 - [x] 增加库存调整事务与审计，拒绝总库存低于已借出数量（代码与测试已提交，仍需 CI 验证）。
 - [x] 为 400、404、409 定义稳定业务错误码；请求追踪 ID 后续补充。
 - [ ] 解释为什么 SQL 值使用占位符，而排序字段使用白名单。
