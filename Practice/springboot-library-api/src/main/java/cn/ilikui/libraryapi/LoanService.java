@@ -3,10 +3,14 @@ package cn.ilikui.libraryapi;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -53,10 +57,19 @@ public class LoanService {
         int remaining = available - 1;
         jdbc.update("UPDATE books SET available_copies = ? WHERE id = ?", remaining, bookId);
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        Long loanId = jdbc.queryForObject(
-                "INSERT INTO book_loans(book_id, borrower_name, borrowed_at, status) VALUES (?, ?, ?, 'BORROWED')",
-                Long.class, bookId, request.borrowerName().trim(), now);
-        if (loanId == null) throw new IllegalStateException("数据库未返回借阅记录 ID");
+        KeyHolder keys = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO book_loans(book_id, borrower_name, borrowed_at, status) VALUES (?, ?, ?, 'BORROWED')",
+                    Statement.RETURN_GENERATED_KEYS);
+            statement.setLong(1, bookId);
+            statement.setString(2, request.borrowerName().trim());
+            statement.setObject(3, now);
+            return statement;
+        }, keys);
+        Number generatedKey = keys.getKey();
+        if (generatedKey == null) throw new IllegalStateException("数据库未返回借阅记录 ID");
+        long loanId = generatedKey.longValue();
         jdbc.update("INSERT INTO stock_audit(book_id, loan_id, action, quantity, available_after, occurred_at) VALUES (?, ?, 'BORROW', 1, ?, ?)",
                 bookId, loanId, remaining, now);
         return findLoan(loanId);
