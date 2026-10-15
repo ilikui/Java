@@ -27,9 +27,16 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Test
+      - name: Test (H2 + PostgreSQL/MySQL Testcontainers)
         working-directory: Practice/springboot-library-api
         run: mvn --batch-mode --no-transfer-progress test
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: springboot-library-api-test-reports
+          path: Practice/springboot-library-api/target/surefire-reports/*.xml
+          if-no-files-found: warn
       - name: Package
         working-directory: Practice/springboot-library-api
         run: mvn --batch-mode --no-transfer-progress package
