@@ -90,6 +90,44 @@ class BookControllerTest {
     }
 
     @Test
+    void shouldFilterByPriceRangeAndReturnStableErrorCodes() throws Exception {
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"价格过滤测试 A","author":"价格作者","price":10,"isbn":"9787111222239"}
+                        """)).andExpect(status().isCreated());
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"价格过滤测试 B","author":"价格作者","price":20,"isbn":"9787111222246"}
+                        """)).andExpect(status().isCreated());
+
+        mvc.perform(get("/api/books").param("q", "价格过滤测试").param("minPrice", "15").param("maxPrice", "25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("价格过滤测试 B"));
+        mvc.perform(get("/api/books").param("minPrice", "30").param("maxPrice", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_QUERY"));
+        mvc.perform(get("/api/books/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+    }
+
+    @Test
+    void shouldRejectDuplicateIsbnAfterNormalization() throws Exception {
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"ISBN 唯一性 A","author":"测试作者","price":10,"isbn":"978-7-111-22222-2"}
+                                """))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"ISBN 唯一性 B","author":"测试作者","price":12,"isbn":"9787111222222"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_ISBN"));
+    }
+
+    @Test
     void shouldRejectInvalidPaginationParameters() throws Exception {
         mvc.perform(get("/api/books").param("page", "-1"))
                 .andExpect(status().isBadRequest());
