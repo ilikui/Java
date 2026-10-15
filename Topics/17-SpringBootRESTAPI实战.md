@@ -51,10 +51,10 @@ GET /api/books?q=java&page=0&size=20&sortBy=title&direction=asc
 
 - `q`：按书名或作者进行不区分大小写的包含匹配。
 - `page`：从 0 开始；`size` 限制为 1–100，避免返回过大的结果集。
-- `sortBy`：只允许 `id`、`title`、`author`、`price`。
+- `sortBy`：只允许 `id`、`title`、`author`、`price`、`isbn`。
 - `direction`：只允许 `asc` 或 `desc`。
 
-SQL 值可以用占位符绑定，但列名和排序方向通常不能直接用普通参数占位符，因此必须通过白名单选择。不要把用户输入直接拼接进 SQL。分页响应包含当前页数据、总记录数、页码、每页数量和总页数。
+SQL 值可以用占位符绑定，但列名和排序方向通常不能直接用普通参数占位符，因此必须通过白名单选择。不要把用户输入直接拼接进 SQL。可选 `minPrice` / `maxPrice` 按价格区间过滤，价格不能为负，下限不能高于上限。排序字段使用白名单；当主排序字段相同，使用 `id ASC` 作为稳定次级排序。分页响应包含当前页数据、总记录数、页码、每页数量和总页数。
 
 ## 5. JdbcTemplate 与参数化 SQL
 
@@ -77,7 +77,7 @@ jdbc.update(connection -> {
 
 ## 6. Flyway 数据库迁移
 
-项目使用 `src/main/resources/db/migration/V1__create_books.sql` 创建图书表及搜索索引。Flyway 会记录已经执行的迁移版本，适合让开发、测试和部署环境使用可追踪的数据库结构变更。
+项目使用 `src/main/resources/db/migration/V1__create_books.sql` 创建图书表及搜索索引，并使用 `V2__add_isbn_to_books.sql` 增加可选 ISBN 字段与唯一索引。写入时将 ISBN 去掉连字符并转为大写；不填写 ISBN 时保存为 `NULL`。Flyway 会记录已经执行的迁移版本，适合让开发、测试和部署环境使用可追踪的数据库结构变更。
 
 - 已应用的迁移脚本应视为不可变；结构变化应新增 `V2__...`，而不是修改已在环境执行过的 V1。
 - 数据库凭据应从环境变量或密钥管理中注入，不应提交真实密码。
@@ -91,7 +91,7 @@ jdbc.update(connection -> {
 - Spring 默认通过代理管理声明式事务；同类内部自调用可能绕过代理。
 - 默认运行时异常会触发回滚；检查型异常需要明确回滚规则。
 - `@RestControllerAdvice` 集中处理异常，避免 Controller 重复 try/catch。
-- 错误响应不应暴露 SQL、堆栈、密码或内部基础设施细节。
+- 错误响应不应暴露 SQL、堆栈、密码或内部基础设施细节。当前使用稳定业务码 `VALIDATION_ERROR`、`INVALID_QUERY`、`BOOK_NOT_FOUND`、`DUPLICATE_ISBN`；重复 ISBN 返回 HTTP 409。
 
 ## 8. 测试策略
 
@@ -105,10 +105,10 @@ jdbc.update(connection -> {
 
 ## 9. 动手练习与面试自测
 
-- [ ] 增加 ISBN 字段与唯一约束，重复 ISBN 返回 409。
-- [ ] 增加价格区间过滤与稳定的多字段排序。
+- [x] 增加 ISBN 字段与唯一约束，重复 ISBN 返回 409（代码与测试已提交，仍需 CI 验证）。
+- [x] 增加价格区间过滤与稳定的多字段排序（代码与测试已提交，仍需 CI 验证）。
 - [ ] 为列表增加 PostgreSQL/MySQL 的真实数据库集成测试。
-- [ ] 为 400、404、409 定义稳定的错误码和请求追踪 ID。
+- [x] 为 400、404、409 定义稳定业务错误码；请求追踪 ID 后续补充。
 - [ ] 解释为什么 SQL 值使用占位符，而排序字段使用白名单。
 - [ ] 解释为什么 Flyway 迁移脚本发布后不应随意改写。
 - [ ] 解释为什么 H2 测试通过不代表生产数据库行为完全一致。
