@@ -42,7 +42,7 @@ public class LoanService {
 
     @Transactional
     public LoanRecord borrow(long bookId, BorrowRequest request) {
-        int available;
+        Integer available;
         try {
             available = jdbc.queryForObject(
                     "SELECT available_copies FROM books WHERE id = ? FOR UPDATE", Integer.class, bookId);
@@ -82,7 +82,7 @@ public class LoanService {
             throw new LibraryConflictException("LOAN_ALREADY_RETURNED", "该借阅记录已经归还，不能重复归还");
         }
 
-        int available;
+        Integer available;
         try {
             available = jdbc.queryForObject(
                     "SELECT available_copies FROM books WHERE id = ? FOR UPDATE", Integer.class, current.bookId());
