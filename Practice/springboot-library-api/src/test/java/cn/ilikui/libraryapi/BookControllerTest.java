@@ -136,4 +136,24 @@ class BookControllerTest {
         mvc.perform(get("/api/books").param("sortBy", "title desc, id"))
                 .andExpect(status().isBadRequest());
     }
+
+
+    @Test
+    void shouldReturnStableErrorsForMalformedQueryAndJson() throws Exception {
+        mvc.perform(get("/api/books").param("page", "not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_QUERY"));
+
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST_BODY"));
+
+        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"类型错误","author":"测试作者","price":"not-a-number"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST_BODY"));
+    }
 }
