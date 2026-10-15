@@ -31,6 +31,11 @@ mvn spring-boot:run
 | POST | `/api/books` | 新增图书 | 201 |
 | PUT | `/api/books/{id}` | 更新图书 | 200 |
 | DELETE | `/api/books/{id}` | 删除图书 | 204 |
+| POST | `/api/books/{bookId}/loans` | 借阅图书 | 201 |
+| POST | `/api/loans/{loanId}/return` | 归还图书 | 200 |
+| GET | `/api/books/{bookId}/stock` | 查询库存 | 200 |
+| GET | `/api/books/{bookId}/loans` | 查询借阅记录 | 200 |
+| GET | `/api/books/{bookId}/stock-audit` | 查询库存审计流水 | 200 |
 
 ### 分页、搜索与价格筛选
 
