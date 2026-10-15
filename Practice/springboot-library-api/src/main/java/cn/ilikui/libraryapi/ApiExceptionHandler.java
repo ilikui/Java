@@ -34,6 +34,16 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.CONFLICT, "DUPLICATE_ISBN", "ISBN 已存在，请使用唯一的 ISBN");
     }
 
+    @ExceptionHandler(LoanNotFoundException.class)
+    public ProblemDetail handleLoanNotFound(LoanNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "LOAN_NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(LibraryConflictException.class)
+    public ProblemDetail handleLibraryConflict(LibraryConflictException ex) {
+        return problem(HttpStatus.CONFLICT, ex.code(), ex.getMessage());
+    }
+
     private ProblemDetail problem(HttpStatus status, String code, String detail) {
         ProblemDetail result = ProblemDetail.forStatusAndDetail(status, detail);
         result.setProperty("code", code);
