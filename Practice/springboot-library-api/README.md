@@ -127,6 +127,5 @@ flowchart TD
 
 ## 下一步
 
-1. 增加并发借阅压力测试，验证最后一本书不会被超借。
-2. 加入 PostgreSQL/MySQL profile 与 Testcontainers 集成测试。
-3. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
+1. 加入 PostgreSQL/MySQL profile 与 Testcontainers 集成测试。
+2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
