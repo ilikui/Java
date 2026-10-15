@@ -42,13 +42,18 @@ class MySqlLibraryApiIntegrationTest {
             .withUsername("library")
             .withPassword("library");
 
+    private static String mysqlUrl() {
+        return MYSQL.getJdbcUrl() + (MYSQL.getJdbcUrl().contains("?") ? "&" : "?")
+                + "connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true";
+    }
+
     @DynamicPropertySource
     static void configureMySql(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
+        registry.add("spring.datasource.url", MySqlLibraryApiIntegrationTest::mysqlUrl);
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);
         registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
-        registry.add("spring.flyway.url", MYSQL::getJdbcUrl);
+        registry.add("spring.flyway.url", MySqlLibraryApiIntegrationTest::mysqlUrl);
         registry.add("spring.flyway.user", MYSQL::getUsername);
         registry.add("spring.flyway.password", MYSQL::getPassword);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration/mysql");
