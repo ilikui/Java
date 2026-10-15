@@ -1,6 +1,5 @@
 package cn.ilikui.libraryapi;
 
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -11,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -47,16 +47,25 @@ public class BookService {
 
         String normalizedQuery = query == null ? "" : query.trim();
         String filter = "%" + normalizedQuery + "%";
-        String where = " WHERE (? = '' OR LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?))" +
-                " AND (? IS NULL OR price >= ?) AND (? IS NULL OR price <= ?)";
-        Object[] filterArgs = {normalizedQuery, filter, filter, minPrice, minPrice, maxPrice, maxPrice};
-        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM books" + where, Long.class, filterArgs);
+        StringBuilder where = new StringBuilder(
+                " WHERE (? = '' OR LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?))");
+        List<Object> filterArgs = new ArrayList<>(List.of(normalizedQuery, filter, filter));
+        if (minPrice != null) {
+            where.append(" AND price >= ?");
+            filterArgs.add(minPrice);
+        }
+        if (maxPrice != null) {
+            where.append(" AND price <= ?");
+            filterArgs.add(maxPrice);
+        }
+        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM books" + where, Long.class, filterArgs.toArray());
         long total = count == null ? 0L : count;
         String sql = "SELECT id, title, author, price, isbn FROM books" + where +
                 " ORDER BY " + sortBy + " " + normalizedDirection + ", id ASC LIMIT ? OFFSET ?";
-        Object[] pageArgs = {normalizedQuery, filter, filter, minPrice, minPrice, maxPrice, maxPrice,
-                size, (long) page * size};
-        List<Book> items = jdbc.query(sql, BOOK_MAPPER, pageArgs);
+        List<Object> pageArgs = new ArrayList<>(filterArgs);
+        pageArgs.add(size);
+        pageArgs.add((long) page * size);
+        List<Book> items = jdbc.query(sql, BOOK_MAPPER, pageArgs.toArray());
         int totalPages = total == 0 ? 0 : (int) ((total + size - 1) / size);
         return new BookPageResponse(items, total, page, size, totalPages);
     }
