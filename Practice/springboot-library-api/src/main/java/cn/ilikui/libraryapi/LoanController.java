@@ -28,6 +28,11 @@ public class LoanController {
         return service.listByBook(bookId);
     }
 
+    @GetMapping("/api/books/{bookId}/stock")
+    public StockResponse stock(@PathVariable long bookId) {
+        return service.stock(bookId);
+    }
+
     @GetMapping("/api/books/{bookId}/stock-audit")
     public java.util.List<StockAuditRecord> stockAudit(@PathVariable long bookId) {
         return service.stockAudit(bookId);
