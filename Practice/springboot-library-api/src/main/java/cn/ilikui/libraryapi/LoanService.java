@@ -150,7 +150,7 @@ public class LoanService {
                 SELECT id, book_id, loan_id, action, quantity, available_after, occurred_at
                 FROM stock_audit WHERE book_id = ?
                 UNION ALL
-                SELECT id, book_id, CAST(NULL AS BIGINT) AS loan_id, 'ADJUST' AS action,
+                SELECT id, book_id, NULL AS loan_id, 'ADJUST' AS action,
                        ABS(new_total_copies - old_total_copies) AS quantity,
                        new_available_copies AS available_after, occurred_at
                 FROM stock_adjustment_audit WHERE book_id = ?
