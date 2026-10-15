@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Exercises Flyway migrations and stock transactions against a real PostgreSQL engine.
@@ -54,6 +56,9 @@ class PostgresLibraryApiIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Test
     void concurrentBorrowersCannotTakeTheLastCopyTwice() throws Exception {
@@ -147,4 +152,61 @@ class PostgresLibraryApiIntegrationTest {
                 .andExpect(jsonPath("$[0].action").value("BORROW"))
                 .andExpect(jsonPath("$[1].action").value("ADJUST"));
     }
+
+    @Test
+    void stockAdjustmentRollsBackWhenAuditInsertFails() throws Exception {
+        String created = mvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"事务回滚测试图书","author":"集成测试","price":29.90}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(created).get("id").asLong();
+
+        jdbc.execute("""
+                CREATE OR REPLACE FUNCTION fail_stock_adjustment_audit()
+                RETURNS trigger AS $$
+                BEGIN
+                    RAISE EXCEPTION 'forced stock audit failure';
+                END;
+                $$ LANGUAGE plpgsql
+                """);
+        jdbc.execute("""
+                CREATE TRIGGER fail_stock_adjustment_audit_trigger
+                BEFORE INSERT ON stock_adjustment_audit
+                FOR EACH ROW EXECUTE FUNCTION fail_stock_adjustment_audit()
+                """);
+
+        try {
+            boolean requestFailed;
+            try {
+                int responseStatus = mvc.perform(patch("/api/books/{bookId}/stock", bookId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"totalCopies":5}
+                                        """))
+                        .andReturn().getResponse().getStatus();
+                requestFailed = responseStatus >= 500;
+            } catch (Exception expectedDatabaseFailure) {
+                requestFailed = true;
+            }
+            assertTrue(requestFailed, "audit trigger should fail the stock adjustment request");
+
+            // The books update and audit insert share one transaction: neither may persist.
+            mvc.perform(get("/api/books/{bookId}/stock", bookId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalCopies").value(1))
+                    .andExpect(jsonPath("$.availableCopies").value(1))
+                    .andExpect(jsonPath("$.borrowedCopies").value(0));
+
+            mvc.perform(get("/api/books/{bookId}/stock-audit", bookId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        } finally {
+            jdbc.execute("DROP TRIGGER IF EXISTS fail_stock_adjustment_audit_trigger ON stock_adjustment_audit");
+            jdbc.execute("DROP FUNCTION IF EXISTS fail_stock_adjustment_audit()");
+        }
+    }
+
 }
