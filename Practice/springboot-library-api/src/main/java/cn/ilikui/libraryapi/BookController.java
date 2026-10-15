@@ -3,6 +3,7 @@ package cn.ilikui.libraryapi;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -15,8 +16,13 @@ public class BookController {
     }
 
     @GetMapping
-    public List<Book> findAll() {
-        return service.findAll();
+    public BookPageResponse findPage(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        return service.findPage(q, page, size, sortBy, direction);
     }
 
     @GetMapping("/{id}")
