@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,6 +17,10 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -146,6 +152,63 @@ class MySqlLibraryApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCopies").value(0))
                 .andExpect(jsonPath("$.borrowedCopies").value(1));
+    }
+
+
+    @Test
+    void mysqlV3ToV4UpgradePreservesExistingBooksAndStock() throws Exception {
+        try (MySQLContainer<?> upgradeDb = new MySQLContainer<>("mysql:8.4")
+                .withDatabaseName("library_upgrade")
+                .withUsername("library")
+                .withPassword("library")) {
+            upgradeDb.start();
+            String url = upgradeDb.getJdbcUrl() + (upgradeDb.getJdbcUrl().contains("?") ? "&" : "?")
+                    + "connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true";
+
+            Flyway.configure()
+                    .dataSource(url, upgradeDb.getUsername(), upgradeDb.getPassword())
+                    .locations("classpath:db/migration/mysql")
+                    .target(MigrationVersion.fromVersion("3"))
+                    .load()
+                    .migrate();
+
+            try (Connection connection = DriverManager.getConnection(
+                    url, upgradeDb.getUsername(), upgradeDb.getPassword());
+                 Statement statement = connection.createStatement()) {
+                statement.executeUpdate("""
+                        INSERT INTO books(title, author, price, isbn, total_copies, available_copies)
+                        VALUES ('升级前图书', '迁移测试', 12.50, '9787111000001', 3, 2)
+                        """);
+            }
+
+            Flyway.configure()
+                    .dataSource(url, upgradeDb.getUsername(), upgradeDb.getPassword())
+                    .locations("classpath:db/migration/mysql")
+                    .load()
+                    .migrate();
+
+            try (Connection connection = DriverManager.getConnection(
+                    url, upgradeDb.getUsername(), upgradeDb.getPassword());
+                 Statement statement = connection.createStatement();
+                 ResultSet book = statement.executeQuery(
+                         "SELECT title, total_copies, available_copies FROM books WHERE isbn = '9787111000001'")) {
+                assertTrue(book.next(), "existing book must survive V3 to V4 migration");
+                assertEquals("升级前图书", book.getString("title"));
+                assertEquals(3, book.getInt("total_copies"));
+                assertEquals(2, book.getInt("available_copies"));
+            }
+
+            try (Connection connection = DriverManager.getConnection(
+                    url, upgradeDb.getUsername(), upgradeDb.getPassword());
+                 Statement statement = connection.createStatement();
+                 ResultSet audit = statement.executeQuery("""
+                         SELECT COUNT(*) FROM information_schema.tables
+                         WHERE table_schema = DATABASE() AND table_name = 'stock_adjustment_audit'
+                         """)) {
+                assertTrue(audit.next());
+                assertEquals(1, audit.getInt(1), "V4 adjustment audit table must exist after upgrade");
+            }
+        }
     }
 
     @Test
