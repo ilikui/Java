@@ -1,0 +1,86 @@
+package cn.ilikui.libraryapi;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class LoanControllerTest {
+    @Autowired private MockMvc mvc;
+    @Autowired private ObjectMapper objectMapper;
+
+    @Test
+    void shouldBorrowReturnAndAuditStockAtomically() throws Exception {
+        String created = mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"借阅流程测试书","author":"测试作者","price":25}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(created).get("id").asLong();
+
+        String loanJson = mvc.perform(post("/api/books/{bookId}/loans", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"borrowerName":"测试读者"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bookId").value(bookId))
+                .andExpect(jsonPath("$.borrowerName").value("测试读者"))
+                .andExpect(jsonPath("$.status").value("BORROWED"))
+                .andReturn().getResponse().getContentAsString();
+        long loanId = objectMapper.readTree(loanJson).get("id").asLong();
+
+        mvc.perform(post("/api/books/{bookId}/loans", bookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"borrowerName":"第二位读者"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("OUT_OF_STOCK"));
+
+        mvc.perform(post("/api/loans/{loanId}/return", loanId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RETURNED"))
+                .andExpect(jsonPath("$.returnedAt").isNotEmpty());
+
+        mvc.perform(post("/api/loans/{loanId}/return", loanId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("LOAN_ALREADY_RETURNED"));
+
+        mvc.perform(get("/api/books/{bookId}/loans", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("RETURNED"));
+
+        mvc.perform(get("/api/books/{bookId}/stock-audit", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].action").value("BORROW"))
+                .andExpect(jsonPath("$[0].availableAfter").value(0))
+                .andExpect(jsonPath("$[1].action").value("RETURN"))
+                .andExpect(jsonPath("$[1].availableAfter").value(1));
+    }
+
+    @Test
+    void shouldValidateBorrowerAndReportMissingLoan() throws Exception {
+        mvc.perform(post("/api/books/1/loans").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"borrowerName":" "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        mvc.perform(post("/api/loans/999999/return"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("LOAN_NOT_FOUND"));
+    }
+}
