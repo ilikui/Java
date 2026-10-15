@@ -27,6 +27,12 @@ class LoanControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long bookId = objectMapper.readTree(created).get("id").asLong();
 
+        mvc.perform(get("/api/books/{bookId}/stock", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCopies").value(1))
+                .andExpect(jsonPath("$.availableCopies").value(1))
+                .andExpect(jsonPath("$.borrowedCopies").value(0));
+
         String loanJson = mvc.perform(post("/api/books/{bookId}/loans", bookId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -38,6 +44,11 @@ class LoanControllerTest {
                 .andExpect(jsonPath("$.status").value("BORROWED"))
                 .andReturn().getResponse().getContentAsString();
         long loanId = objectMapper.readTree(loanJson).get("id").asLong();
+
+        mvc.perform(get("/api/books/{bookId}/stock", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableCopies").value(0))
+                .andExpect(jsonPath("$.borrowedCopies").value(1));
 
         mvc.perform(post("/api/books/{bookId}/loans", bookId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -60,6 +71,11 @@ class LoanControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].status").value("RETURNED"));
+
+        mvc.perform(get("/api/books/{bookId}/stock", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableCopies").value(1))
+                .andExpect(jsonPath("$.borrowedCopies").value(0));
 
         mvc.perform(get("/api/books/{bookId}/stock-audit", bookId))
                 .andExpect(status().isOk())
