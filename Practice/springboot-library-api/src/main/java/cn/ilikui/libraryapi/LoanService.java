@@ -114,11 +114,50 @@ public class LoanService {
                 (rs, rowNum) -> new StockResponse(rs.getLong("id"), rs.getInt("total_copies"),
                         rs.getInt("available_copies"), rs.getInt("total_copies") - rs.getInt("available_copies")), bookId);
     }
+    @Transactional
+    public StockResponse adjustStock(long bookId, StockAdjustmentRequest request) {
+        List<Integer> locked = jdbc.query(
+                "SELECT total_copies, available_copies FROM books WHERE id = ? FOR UPDATE",
+                (rs, rowNum) -> {
+                    java.util.ArrayList<Integer> values = new java.util.ArrayList<>(2);
+                    values.add(rs.getInt("total_copies"));
+                    values.add(rs.getInt("available_copies"));
+                    return values;
+                }, bookId).stream().findFirst().orElseThrow(() -> new BookNotFoundException(bookId));
+        int oldTotal = locked.get(0);
+        int oldAvailable = locked.get(1);
+        int borrowed = oldTotal - oldAvailable;
+        int newTotal = request.totalCopies();
+        if (newTotal < borrowed) {
+            throw new LibraryConflictException("STOCK_BELOW_BORROWED",
+                    "总库存不能小于当前借出数量 " + borrowed);
+        }
+
+        int newAvailable = newTotal - borrowed;
+        if (newTotal != oldTotal) {
+            jdbc.update("UPDATE books SET total_copies = ?, available_copies = ? WHERE id = ?",
+                    newTotal, newAvailable, bookId);
+            OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+            jdbc.update("INSERT INTO stock_adjustment_audit(book_id, old_total_copies, new_total_copies, old_available_copies, new_available_copies, occurred_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    bookId, oldTotal, newTotal, oldAvailable, newAvailable, now);
+        }
+        return new StockResponse(bookId, newTotal, newAvailable, borrowed);
+    }
+
     @Transactional(readOnly = true)
     public List<StockAuditRecord> stockAudit(long bookId) {
         ensureBookExists(bookId);
-        return jdbc.query("SELECT id, book_id, loan_id, action, quantity, available_after, occurred_at FROM stock_audit WHERE book_id = ? ORDER BY id",
-                AUDIT_MAPPER, bookId);
+        String sql = """
+                SELECT id, book_id, loan_id, action, quantity, available_after, occurred_at
+                FROM stock_audit WHERE book_id = ?
+                UNION ALL
+                SELECT id, book_id, CAST(NULL AS BIGINT) AS loan_id, 'ADJUST' AS action,
+                       ABS(new_total_copies - old_total_copies) AS quantity,
+                       new_available_copies AS available_after, occurred_at
+                FROM stock_adjustment_audit WHERE book_id = ?
+                ORDER BY occurred_at, id
+                """;
+        return jdbc.query(sql, AUDIT_MAPPER, bookId, bookId);
     }
 
     private LoanRecord findLoan(long id) {
