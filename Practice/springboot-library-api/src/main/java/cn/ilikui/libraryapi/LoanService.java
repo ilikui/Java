@@ -108,6 +108,13 @@ public class LoanService {
     }
 
     @Transactional(readOnly = true)
+    public StockResponse stock(long bookId) {
+        ensureBookExists(bookId);
+        return jdbc.queryForObject("SELECT id, total_copies, available_copies FROM books WHERE id = ?",
+                (rs, rowNum) -> new StockResponse(rs.getLong("id"), rs.getInt("total_copies"),
+                        rs.getInt("available_copies"), rs.getInt("total_copies") - rs.getInt("available_copies")), bookId);
+    }
+    @Transactional(readOnly = true)
     public List<StockAuditRecord> stockAudit(long bookId) {
         ensureBookExists(bookId);
         return jdbc.query("SELECT id, book_id, loan_id, action, quantity, available_after, occurred_at FROM stock_audit WHERE book_id = ? ORDER BY id",
