@@ -1,6 +1,6 @@
 # 17｜Spring Boot REST API 实战
 
-> 配套项目：[Spring Boot 图书 REST API](../Practice/springboot-library-api/README.md)  
+> 配套项目：[Spring Boot 图书 REST API](../Practice/springboot-library-api/README.md)；扩展阅读：[数据库兼容性与迁移策略](18-数据库兼容性与迁移策略.md)  
 > 基线：JDK 17、Spring Boot 3.4.4、Spring Web、Bean Validation、Spring JDBC、Flyway、H2、JUnit 5。
 
 ## 1. 从 HTTP 请求到数据库
@@ -130,6 +130,7 @@ jdbc.update(connection -> {
 - [x] 增加并发请求争抢最后一册图书的回归测试：应只有一个借阅请求成功（测试代码已提交，仍需 CI 验证）。
 - [x] 增加 PostgreSQL + Testcontainers 集成测试，覆盖迁移、借阅、库存调整、审计与最后一册并发争抢（代码已提交，仍需 CI 实际运行确认）。
 - [x] 增加 PostgreSQL 并发借阅、库存调整事务回滚与 V3→V4 Flyway 迁移升级集成测试（代码已提交，仍需 CI / Docker 环境实际执行确认）。
+- [x] 编写数据库兼容性评估专题，明确 H2/PostgreSQL/MySQL 的差异与 MySQL 接入前检查项。
 - [ ] 评估 MySQL 兼容性，并按目标数据库补齐方言与集成测试。
 - [x] 增加库存调整事务与审计，拒绝总库存低于已借出数量（代码与测试已提交，仍需 CI 验证）。
 - [x] 为 400、404、409 定义稳定业务错误码；请求追踪 ID 后续补充。
