@@ -111,6 +111,10 @@ public class BookService {
 
     @Transactional
     public void delete(long id) {
+        Integer loanCount = jdbc.queryForObject("SELECT COUNT(*) FROM book_loans WHERE book_id = ?", Integer.class, id);
+        if (loanCount != null && loanCount > 0) {
+            throw new LibraryConflictException("BOOK_HAS_LOAN_HISTORY", "图书存在借阅历史，不能删除");
+        }
         int changed = jdbc.update("DELETE FROM books WHERE id = ?", id);
         if (changed == 0) throw new BookNotFoundException(id);
     }
