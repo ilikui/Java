@@ -67,6 +67,10 @@ class LoanControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("LOAN_ALREADY_RETURNED"));
 
+        mvc.perform(delete("/api/books/{bookId}", bookId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BOOK_HAS_LOAN_HISTORY"));
+
         mvc.perform(get("/api/books/{bookId}/loans", bookId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
