@@ -17,6 +17,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -47,6 +53,56 @@ class PostgresLibraryApiIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Test
+    void concurrentBorrowersCannotTakeTheLastCopyTwice() throws Exception {
+        String created = mvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"并发库存测试图书","author":"集成测试","price":19.90}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(created).get("id").asLong();
+
+        int workers = 2;
+        CountDownLatch ready = new CountDownLatch(workers);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(workers);
+        try {
+            List<Future<Integer>> results = new ArrayList<>();
+            for (int i = 0; i < workers; i++) {
+                final int workerId = i;
+                results.add(pool.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    return mvc.perform(post("/api/books/{bookId}/loans", bookId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("""
+                                            {"borrowerName":"并发读者-%d"}
+                                            """.formatted(workerId)))
+                            .andReturn().getResponse().getStatus();
+                }));
+            }
+            ready.await();
+            start.countDown();
+            List<Integer> statuses = new ArrayList<>();
+            for (Future<Integer> result : results) {
+                statuses.add(result.get());
+            }
+            org.junit.jupiter.api.Assertions.assertEquals(1,
+                    statuses.stream().filter(code -> code == 201).count());
+            org.junit.jupiter.api.Assertions.assertEquals(1,
+                    statuses.stream().filter(code -> code == 409).count());
+        } finally {
+            pool.shutdownNow();
+        }
+
+        mvc.perform(get("/api/books/{bookId}/stock", bookId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableCopies").value(0))
+                .andExpect(jsonPath("$.borrowedCopies").value(1));
+    }
 
     @Test
     void postgresMigrationsAndStockAdjustmentRemainConsistent() throws Exception {
