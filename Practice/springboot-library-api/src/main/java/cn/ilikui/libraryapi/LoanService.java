@@ -66,14 +66,14 @@ public class LoanService {
                     Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, bookId);
             statement.setString(2, request.borrowerName().trim());
-            statement.setObject(3, now);
+            statement.setTimestamp(3, Timestamp.from(now.toInstant()));
             return statement;
         }, keys);
         Number generatedKey = keys.getKey();
         if (generatedKey == null) throw new IllegalStateException("数据库未返回借阅记录 ID");
         long loanId = generatedKey.longValue();
         jdbc.update("INSERT INTO stock_audit(book_id, loan_id, action, quantity, available_after, occurred_at) VALUES (?, ?, 'BORROW', 1, ?, ?)",
-                bookId, loanId, remaining, now);
+                bookId, loanId, remaining, Timestamp.from(now.toInstant()));
         return findLoan(loanId);
     }
 
@@ -96,9 +96,9 @@ public class LoanService {
         jdbc.update("UPDATE books SET available_copies = ? WHERE id = ?", remaining, current.bookId());
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         jdbc.update("UPDATE book_loans SET status = 'RETURNED', returned_at = ? WHERE id = ? AND status = 'BORROWED'",
-                now, loanId);
+                Timestamp.from(now.toInstant()), loanId);
         jdbc.update("INSERT INTO stock_audit(book_id, loan_id, action, quantity, available_after, occurred_at) VALUES (?, ?, 'RETURN', 1, ?, ?)",
-                current.bookId(), loanId, remaining, now);
+                current.bookId(), loanId, remaining, Timestamp.from(now.toInstant()));
         return findLoan(loanId);
     }
 
@@ -138,7 +138,7 @@ public class LoanService {
                     newTotal, newAvailable, bookId);
             OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
             jdbc.update("INSERT INTO stock_adjustment_audit(book_id, old_total_copies, new_total_copies, old_available_copies, new_available_copies, occurred_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    bookId, oldTotal, newTotal, oldAvailable, newAvailable, now);
+                    bookId, oldTotal, newTotal, oldAvailable, newAvailable, Timestamp.from(now.toInstant()));
         }
         return new StockResponse(bookId, newTotal, newAvailable, borrowed);
     }
