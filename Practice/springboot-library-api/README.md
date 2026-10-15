@@ -87,7 +87,7 @@ ISBN 是可选字段。写入前会去掉连字符并转为大写；未填写时
 
 ## PostgreSQL 集成测试
 
-常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，以及审计写入失败后库存调整事务是否完整回滚。
+常规 `mvn test` 继续使用默认 H2 数据库。额外的 `PostgresLibraryApiIntegrationTest` 通过 Testcontainers 启动临时 PostgreSQL 16 容器，验证 Flyway 迁移、借阅、库存调整、审计查询、两个请求并发争抢最后一册时的库存保护，审计写入失败后库存调整事务是否完整回滚，以及从 V3 升级到 V4 时旧图书数据是否保留。
 
 - 运行 PostgreSQL 集成测试前需要安装并启动 Docker。
 - Docker 不可用时，Testcontainers 会跳过该集成测试，H2 测试仍可照常执行。
@@ -154,5 +154,5 @@ flowchart TD
 
 ## 下一步
 
-1. PostgreSQL 集成测试已补充并发借阅与库存调整事务回滚场景；后续验证迁移升级路径，再评估 MySQL 兼容性。
+1. PostgreSQL 集成测试已覆盖并发借阅、事务回滚和 V3→V4 迁移升级；后续评估 MySQL 兼容性。
 2. 增加 OpenAPI、结构化日志、请求追踪 ID 与 Docker。
