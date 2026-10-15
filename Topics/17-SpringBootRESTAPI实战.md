@@ -98,8 +98,8 @@ jdbc.update(connection -> {
 配套 `BookControllerTest` 使用 MockMvc 覆盖：
 - 新增、查询、更新、删除完整流程；
 - 字段校验失败与不存在的 ID；
-- 书名关键字搜索、分页总数、排序方向；
-- 非法页码、超大 page size 和非法排序字段。
+- 书名关键字搜索、价格区间、分页总数、排序方向；
+- 非法页码、超大 page size、非法排序字段、价格区间和重复 ISBN 的 409 响应。
 
 还可以继续增加 Service 单元测试、数据库迁移测试，以及针对 PostgreSQL/MySQL 的集成测试。
 
